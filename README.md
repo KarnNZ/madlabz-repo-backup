@@ -8,7 +8,6 @@ It discovers repositories, lets you choose which ones to protect, runs Git and s
 
 **Current release: v0.6.2**
 
-
 ## See it in 30 seconds
 
 ![MadLabz Repo Backup dashboard](docs/images/dashboard.png)
@@ -25,10 +24,10 @@ Automatic mode can be verified end-to-end from the CLI.
 
 1. Download the latest ZIP.
 2. Extract it.
-3. Run `VALIDATE-PACKAGE.cmd` and confirm `PowerShell parse: PASS`.
+3. Run `VALIDATE-PACKAGE.cmd` and confirm both validation checks pass.
 4. Double-click `INSTALL.cmd`.
-4. Open a new Git Bash or PowerShell window.
-5. Run:
+5. Open a new Git Bash or PowerShell window.
+6. Run:
 
 ```bash
 repo-backup onboard
@@ -50,6 +49,14 @@ repo-backup demo
 ```
 
 The demo is completely read-only.
+
+### New to Repo Backup?
+
+Read the complete beginner-friendly setup and usage guide:
+
+**[Complete How-to-Use Guide →](docs/HOW-TO-USE.md)**
+
+It walks through download, validation, installation, onboarding, safety checks, Dry Run, your first real backup, automatic scheduling, troubleshooting, updates, and the commands most people actually need.
 
 ## What the dashboard tells you
 
@@ -234,7 +241,6 @@ Repo Backup is a free MadLabz developer utility.
 
 MadLabz builds focused software and connected intelligence for small businesses and builders.
 
-
 ## Package validation
 
 Before installing or updating a downloaded release, run:
@@ -244,7 +250,6 @@ VALIDATE-PACKAGE.cmd
 ```
 
 It uses the Windows PowerShell parser to validate `repo-backup.ps1` without executing Repo Backup. If parsing fails, do not install that package.
-
 
 ## Windows PowerShell 5.1 source compatibility
 
@@ -256,7 +261,6 @@ The executable `repo-backup.ps1` is intentionally ASCII-only. This avoids legacy
 ASCII source compatibility: PASS
 PowerShell parse: PASS
 ```
-
 
 ## License
 
