@@ -1,0 +1,8 @@
+# Local portable override/config
+repos.json
+
+# Common OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

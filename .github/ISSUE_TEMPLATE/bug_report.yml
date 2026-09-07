@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible Repo Backup problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste secrets, `.env` contents, access tokens, or private repository content.
+  - type: input
+    id: version
+    attributes:
+      label: Repo Backup version
+      placeholder: "0.6.0"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Sanitized terminal output
+      description: Remove local secrets and anything you do not want public.

@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Windows PowerShell package
+        shell: cmd
+        run: VALIDATE-PACKAGE.cmd
+
+      - name: Validate tag and script version
+        id: version
+        shell: powershell
+        run: |
+          $source = Get-Content .\repo-backup.ps1 -Raw
+          if ($source -notmatch '\$ScriptVersion\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"') {
+            throw "ScriptVersion not found."
+          }
+          $version = $Matches[1]
+          $tag = "${{ github.ref_name }}"
+          if ($tag -ne "v$version") {
+            throw "Tag $tag does not match ScriptVersion $version."
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build release package
+        shell: powershell
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $stage = Join-Path $env:RUNNER_TEMP "madlabz-repo-backup-v$version"
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+
+          $files = @(
+            ".gitignore",
+            "AUTO-BACKUP-LOG.cmd",
+            "AUTO-BACKUP-SETTINGS.cmd",
+            "BACKUP-NOW.cmd",
+            "CHANGELOG.md",
+            "DASHBOARD.cmd",
+            "DEMO.cmd",
+            "INSTALL.cmd",
+            "LICENSE",
+            "ONBOARD.cmd",
+            "README.md",
+            "RELEASE_NOTES.md",
+            "SCAN-PROJECTS.cmd",
+            "STATUS.cmd",
+            "TEST-AUTO-BACKUP.cmd",
+            "UPDATE.cmd",
+            "VALIDATE-PACKAGE.cmd",
+            "VALIDATE-PACKAGE.ps1",
+            "repo-backup.cmd",
+            "repo-backup.ps1",
+            "repos.example.json",
+            "docs"
+          )
+
+          foreach ($item in $files) {
+            Copy-Item $item $stage -Recurse -Force
+          }
+
+          $zip = Join-Path $PWD "madlabz-repo-backup-v$version-windows.zip"
+          Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
+
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path $zip -Leaf)" | Set-Content "$zip.sha256" -Encoding ASCII
+
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            product = "MadLabz Repo Backup"
+            version = $version
+            tag = "v$version"
+            platform = "windows"
+            license = "MIT"
+            asset = (Split-Path $zip -Leaf)
+            sha256 = $hash
+            releaseUrl = "https://github.com/${{ github.repository }}/releases/tag/v$version"
+            downloadUrl = "https://github.com/${{ github.repository }}/releases/download/v$version/$(Split-Path $zip -Leaf)"
+          }
+
+          $manifest | ConvertTo-Json | Set-Content "release-manifest.json" -Encoding UTF8
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: powershell
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          gh release create "v$version" `
+            "madlabz-repo-backup-v$version-windows.zip" `
+            "madlabz-repo-backup-v$version-windows.zip.sha256" `
+            "release-manifest.json" `
+            --title "MadLabz Repo Backup v$version" `
+            --notes-file RELEASE_NOTES.md

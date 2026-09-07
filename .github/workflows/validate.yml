@@ -1,0 +1,25 @@
+name: Validate
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  windows-powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release package source
+        shell: cmd
+        run: VALIDATE-PACKAGE.cmd
+
+      - name: Verify version marker
+        shell: powershell
+        run: |
+          $source = Get-Content .\repo-backup.ps1 -Raw
+          if ($source -notmatch '\$ScriptVersion\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"') {
+            throw "ScriptVersion not found."
+          }
+          Write-Host "Version: $($Matches[1])"

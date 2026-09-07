@@ -1,0 +1,42 @@
+{
+  "version": 5,
+  "defaults": {
+    "remote": "origin",
+    "commitMessagePrefix": "Backup",
+    "autoBackupIdleMinutes": 5,
+    "schedulerTaskName": "MadLabz Repo Backup Auto",
+    "notifyOnAutoAttention": true,
+    "scanRoots": [
+      "C:\\Users\\YourName\\Desktop"
+    ],
+    "excludedDirectories": [
+      "node_modules",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      ".venv",
+      "venv",
+      "vendor",
+      ".turbo",
+      ".cache"
+    ]
+  },
+  "projects": [
+    {
+      "name": "example-project",
+      "alias": "Example Project",
+      "path": "C:\\Users\\YourName\\Desktop\\example-project",
+      "enabled": true,
+      "remote": null,
+      "autoSchedule": "6h",
+      "lastAutoRunAt": null,
+      "lastAutoStatus": null,
+      "lastAutoSuccessAt": null,
+      "lastAutoFailureAt": null,
+      "lastAutoFailureStatus": null,
+      "lastAutoFailureDetails": null
+    }
+  ],
+  "onboardingCompleteAt": null
+}
