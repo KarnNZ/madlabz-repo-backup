@@ -17,7 +17,13 @@ $form.Text = "MadLabz Repo Backup - Status"
 $form.ClientSize = [System.Drawing.Size]::new(930,720)
 $form.MinimumSize = [System.Drawing.Size]::new(760,680)
 $form.StartPosition = "CenterScreen"
-$form.BackColor = [System.Drawing.Color]::FromArgb(247,249,249)
+$form.BackColor = [System.Drawing.Color]::FromArgb(244,247,248)
+$colorInk = [System.Drawing.Color]::FromArgb(22,40,46)
+$colorMuted = [System.Drawing.Color]::FromArgb(89,108,114)
+$colorTeal = [System.Drawing.Color]::FromArgb(0,184,166)
+$colorPale = [System.Drawing.Color]::FromArgb(229,249,245)
+$colorLine = [System.Drawing.Color]::FromArgb(221,230,233)
+$colorHeader = [System.Drawing.Color]::FromArgb(16,30,36)
 $form.Font = [System.Drawing.Font]::new("Segoe UI", [single]10, [System.Drawing.FontStyle]::Regular)
 $form.AutoScaleMode = "Dpi"
 function Label($text,$y,$height,$size,$strong) {
@@ -32,15 +38,76 @@ function Label($text,$y,$height,$size,$strong) {
     $form.Controls.Add($label)
     return $label
 }
-$title = Label "Repo Backup" 14 44 24 $true
-$subtitle = Label "Local backup status and diagnostics" 60 26 10 $false
-$headline = Label "Checking local settings..." 97 33 14 $true
-$summary = Label "" 137 53 10 $false
+# A compact MadLabz header, separate from the scrollable repository view.
+$header = New-Object System.Windows.Forms.Panel
+$header.Location = [System.Drawing.Point]::new(0,0)
+$header.Size = [System.Drawing.Size]::new(930,91)
+$header.Anchor = "Top,Left,Right"
+$header.BackColor = $colorHeader
+$form.Controls.Add($header)
+$headerAccent = New-Object System.Windows.Forms.Panel
+$headerAccent.Location = [System.Drawing.Point]::new(0,88)
+$headerAccent.Size = [System.Drawing.Size]::new(930,3)
+$headerAccent.Anchor = "Left,Right,Bottom"
+$headerAccent.BackColor = $colorTeal
+$header.Controls.Add($headerAccent)
+$title = Label "Repo Backup" 12 44 24 $true
+$title.Parent = $header
+$title.ForeColor = [System.Drawing.Color]::White
+$subtitle = Label "Local backup status and diagnostics" 58 23 10 $false
+$subtitle.Parent = $header
+$subtitle.ForeColor = [System.Drawing.Color]::FromArgb(172,193,199)
+$brand = Label "MADLABZ  /  DESKTOP" 36 24 9 $true
+$brand.Parent = $header
+$brand.Location = [System.Drawing.Point]::new(707,33)
+$brand.Size = [System.Drawing.Size]::new(195,24)
+$brand.TextAlign = "MiddleRight"
+$brand.Anchor = "Top,Right"
+$brand.ForeColor = [System.Drawing.Color]::FromArgb(105,219,205)
+
+$statusCard = New-Object System.Windows.Forms.Panel
+$statusCard.Location = [System.Drawing.Point]::new(24,108)
+$statusCard.Size = [System.Drawing.Size]::new(882,84)
+$statusCard.Anchor = "Top,Left,Right"
+$statusCard.BackColor = [System.Drawing.Color]::White
+$statusCard.BorderStyle = "FixedSingle"
+$form.Controls.Add($statusCard)
+$statusStripe = New-Object System.Windows.Forms.Panel
+$statusStripe.Location = [System.Drawing.Point]::new(0,0)
+$statusStripe.Size = [System.Drawing.Size]::new(4,84)
+$statusStripe.Anchor = "Top,Bottom,Left"
+$statusStripe.BackColor = $colorTeal
+$statusCard.Controls.Add($statusStripe)
+$headline = Label "Checking local settings..." 9 29 14 $true
+$headline.Parent = $statusCard
+$headline.Location = [System.Drawing.Point]::new(18,9)
+$summary = Label "" 40 40 10 $false
+$summary.Parent = $statusCard
+$summary.Location = [System.Drawing.Point]::new(18,39)
+$summary.ForeColor = $colorMuted
+$reposHeader = Label "REPOSITORIES" 200 23 9 $true
+$reposHeader.ForeColor = $colorMuted
 $grid = New-Object System.Windows.Forms.DataGridView
-$grid.Location = [System.Drawing.Point]::new(24,202)
-$grid.Size = [System.Drawing.Size]::new(882,270)
+$grid.Location = [System.Drawing.Point]::new(24,228)
+$grid.Size = [System.Drawing.Size]::new(882,254)
 $grid.Anchor = "Top,Bottom,Left,Right"
 $grid.BackgroundColor = [System.Drawing.Color]::White
+$grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$grid.GridColor = $colorLine
+$grid.CellBorderStyle = [System.Windows.Forms.DataGridViewCellBorderStyle]::SingleHorizontal
+$grid.EnableHeadersVisualStyles = $false
+$grid.ColumnHeadersHeightSizeMode = [System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode]::DisableResizing
+$grid.ColumnHeadersHeight = 35
+$grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(231,238,240)
+$grid.ColumnHeadersDefaultCellStyle.ForeColor = $colorInk
+$grid.ColumnHeadersDefaultCellStyle.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Bold)
+$grid.DefaultCellStyle.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Regular)
+$grid.DefaultCellStyle.ForeColor = $colorInk
+$grid.DefaultCellStyle.SelectionBackColor = $colorPale
+$grid.DefaultCellStyle.SelectionForeColor = $colorInk
+$grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(248,251,251)
+$grid.RowTemplate.Height = 29
+$grid.AllowUserToResizeRows = $false
 $grid.ReadOnly = $true
 $grid.AllowUserToAddRows = $false
 $grid.AllowUserToDeleteRows = $false
@@ -61,9 +128,19 @@ $grid.Columns[3].FillWeight=125
 $grid.Columns[4].FillWeight=120
 $grid.Columns[5].FillWeight=125
 $form.Controls.Add($grid)
-$details = Label "Select a repository to see its last recorded issue." 487 46 10 $false
-$details.Anchor = "Bottom,Left,Right"
-$details.Top = 490
+$grid.BringToFront()
+$detailsPanel = New-Object System.Windows.Forms.Panel
+$detailsPanel.Location = [System.Drawing.Point]::new(24,492)
+$detailsPanel.Size = [System.Drawing.Size]::new(882,48)
+$detailsPanel.Anchor = "Bottom,Left,Right"
+$detailsPanel.BackColor = [System.Drawing.Color]::White
+$detailsPanel.BorderStyle = "FixedSingle"
+$form.Controls.Add($detailsPanel)
+$details = Label "Select a repository to see its last recorded issue." 9 38 9 $false
+$details.Parent = $detailsPanel
+$details.Location = [System.Drawing.Point]::new(12,8)
+$details.Size = [System.Drawing.Size]::new(850,34)
+$details.ForeColor = $colorMuted
 $buttons = New-Object System.Windows.Forms.FlowLayoutPanel
 $buttons.Location = [System.Drawing.Point]::new(24,634)
 $buttons.Size = [System.Drawing.Size]::new(882,42)
@@ -76,20 +153,54 @@ function Button($title,$width) {
     $b.Text=$title
     $b.Size=[System.Drawing.Size]::new([int]$width,34)
     $b.Margin=[System.Windows.Forms.Padding]::new(0,0,7,0)
-    $b.FlatStyle="Flat"
-    $b.BackColor=[System.Drawing.Color]::White
+    $b.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $b.FlatAppearance.BorderColor = $colorLine
+    $b.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(232,247,245)
+    $b.BackColor = [System.Drawing.Color]::White
+    $b.ForeColor = $colorInk
+    $b.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Regular)
     $buttons.Controls.Add($b)
     return $b
 }
-$refresh = Button "Refresh" 105
-$doctor = Button "Health check" 120
-$logs = Button "Recent logs" 120
-$settings = Button "Settings" 100
-$dryRun = Button "Safe dry run" 130
-$test = Button "Test scheduler" 132
-$footer = Label "Close this window whenever you like. Auto backups continue through Windows Task Scheduler." 689 28 9 $false
-$footer.Anchor="Bottom,Left,Right"
-$cadenceLabel = Label "Selected repository backup schedule" 548 25 10 $true
+$refresh = Button "Refresh" 98
+$doctor = Button "Health check" 116
+$logs = Button "Recent logs" 115
+$settings = Button "Settings" 95
+$dryRun = Button "Safe dry run" 116
+$dryRun.FlatAppearance.BorderColor = $colorTeal
+$dryRun.ForeColor = [System.Drawing.Color]::FromArgb(0,112,103)
+$dryInfo = Button "i" 29
+$dryInfo.Font = [System.Drawing.Font]::new("Segoe UI", [single]10, [System.Drawing.FontStyle]::Bold)
+$dryInfo.BackColor = $colorPale
+$dryInfo.ForeColor = [System.Drawing.Color]::FromArgb(0,102,95)
+$dryInfo.Margin = [System.Windows.Forms.Padding]::new(0,0,13,0)
+$dryInfo.AccessibleName = "What is Safe dry run?"
+$dryRunInfoText = "Checks enabled repositories and previews what a backup would do." + [Environment]::NewLine +
+    "It checks Git status, fetches the latest remote state, and runs safety checks." + [Environment]::NewLine +
+    "It does NOT stage files, create commits, or push changes." + [Environment]::NewLine +
+    "It may update remote-tracking references and append a local dry-run history record." + [Environment]::NewLine +
+    "It does not create a backup. MadLabz Website stays on Manual."
+$toolTips = New-Object System.Windows.Forms.ToolTip
+$toolTips.AutoPopDelay = 20000
+$toolTips.InitialDelay = 250
+$toolTips.ReshowDelay = 150
+$toolTips.ShowAlways = $true
+$toolTips.SetToolTip($dryInfo, $dryRunInfoText)
+$toolTips.SetToolTip($dryRun, "Preview backup actions without committing or pushing. Click the i for details.")
+$dryInfo.Add_Click({
+    [System.Windows.Forms.MessageBox]::Show(
+        $dryRunInfoText, "About Safe dry run",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    ) | Out-Null
+})
+$test = Button "Test scheduler" 129
+$test.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(232,207,160)
+$footer = Label "Local dashboard  |  Closing this window does not stop automatic backups." 690 23 9 $false
+$footer.ForeColor = $colorMuted
+$footer.Anchor = "Bottom,Left,Right"
+$cadenceLabel = Label "BACKUP FREQUENCY  /  SELECTED REPOSITORY" 549 25 9 $true
+$cadenceLabel.ForeColor = $colorMuted
 $cadenceLabel.Anchor = "Bottom,Left,Right"
 $cadence = New-Object System.Windows.Forms.ComboBox
 $cadence.Location = [System.Drawing.Point]::new(24,577)
@@ -97,6 +208,8 @@ $cadence.Size = [System.Drawing.Size]::new(210,32)
 $cadence.Anchor = "Bottom,Left"
 $cadence.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $cadence.Items.AddRange([object[]]@("Manual (off)","Hourly","Every 6 hours","Daily"))
+$cadence.BackColor = [System.Drawing.Color]::White
+$cadence.ForeColor = $colorInk
 $form.Controls.Add($cadence)
 $saveCadence = New-Object System.Windows.Forms.Button
 $saveCadence.Text = "Save schedule"
@@ -104,8 +217,14 @@ $saveCadence.Location = [System.Drawing.Point]::new(244,574)
 $saveCadence.Size = [System.Drawing.Size]::new(142,34)
 $saveCadence.Anchor = "Bottom,Left"
 $saveCadence.Enabled = $false
+$saveCadence.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$saveCadence.FlatAppearance.BorderSize = 0
+$saveCadence.BackColor = $colorTeal
+$saveCadence.ForeColor = [System.Drawing.Color]::FromArgb(8,34,32)
+$saveCadence.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($saveCadence)
-$cadenceHint = Label "Choose a frequency, then click Save schedule." 397 579 30 9 $false
+$cadenceHint = Label "Choose a frequency, then Save schedule." 397 579 30 9 $false
+$cadenceHint.ForeColor = $colorMuted
 $cadenceHint.Location = [System.Drawing.Point]::new(408,580)
 $cadenceHint.Size = [System.Drawing.Size]::new(490,25)
 $cadenceHint.Anchor = "Bottom,Left,Right"
