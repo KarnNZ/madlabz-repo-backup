@@ -64,7 +64,7 @@ Repo Backup also includes a local Windows Forms status dashboard. After installi
 
 `%LOCALAPPDATA%\MadLabz\RepoBackup\App`
 
-The window shows each configured repository, automatic schedule, last recorded result, unresolved issue details, and the Windows scheduler state. Buttons let you refresh, inspect health, read recent logs, and run a backup Dry Run. The optional **Test scheduler** action requests confirmation because it runs the actual scheduled task and may create and push a real checkpoint if one is due.
+The window shows each configured repository, automatic schedule, last recorded result, unresolved issue details, and the Windows scheduler state. Select a repository to choose Manual, Hourly, Every 6 hours or Daily and click **Save schedule**. Schedule changes ask for confirmation and use the existing engine; enabling automation is blocked for repositories with unresolved backup failures. Paused historical issues are distinguished from active alerts. Buttons let you refresh, inspect health, read recent logs, and run a backup Dry Run. The optional **Test scheduler** action requests confirmation because it runs the actual scheduled task and may create and push a real checkpoint if one is due.
 
 The dashboard is local and can be closed without affecting scheduled backups. Its main table shows saved results; **Health check** performs a fresh local Git inspection in a separate console. The dashboard never uploads information to MadLabz.
 
