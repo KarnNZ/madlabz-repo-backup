@@ -14,8 +14,8 @@ if (-not (Test-Path -LiteralPath $engine -PathType Leaf)) {
 }
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MadLabz Repo Backup - Status"
-$form.ClientSize = [System.Drawing.Size]::new(930,630)
-$form.MinimumSize = [System.Drawing.Size]::new(760,550)
+$form.ClientSize = [System.Drawing.Size]::new(930,720)
+$form.MinimumSize = [System.Drawing.Size]::new(760,680)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(247,249,249)
 $form.Font = [System.Drawing.Font]::new("Segoe UI", [single]10, [System.Drawing.FontStyle]::Regular)
@@ -38,7 +38,7 @@ $headline = Label "Checking local settings..." 97 33 14 $true
 $summary = Label "" 137 53 10 $false
 $grid = New-Object System.Windows.Forms.DataGridView
 $grid.Location = [System.Drawing.Point]::new(24,202)
-$grid.Size = [System.Drawing.Size]::new(882,250)
+$grid.Size = [System.Drawing.Size]::new(882,270)
 $grid.Anchor = "Top,Bottom,Left,Right"
 $grid.BackgroundColor = [System.Drawing.Color]::White
 $grid.ReadOnly = $true
@@ -61,11 +61,11 @@ $grid.Columns[3].FillWeight=125
 $grid.Columns[4].FillWeight=120
 $grid.Columns[5].FillWeight=125
 $form.Controls.Add($grid)
-$details = Label "Select a repository to see its last recorded issue." 462 56 10 $false
+$details = Label "Select a repository to see its last recorded issue." 487 46 10 $false
 $details.Anchor = "Bottom,Left,Right"
-$details.Top = 468
+$details.Top = 490
 $buttons = New-Object System.Windows.Forms.FlowLayoutPanel
-$buttons.Location = [System.Drawing.Point]::new(24,537)
+$buttons.Location = [System.Drawing.Point]::new(24,634)
 $buttons.Size = [System.Drawing.Size]::new(882,42)
 $buttons.Anchor = "Bottom,Left,Right"
 $buttons.AutoScroll = $true
@@ -87,8 +87,26 @@ $logs = Button "Recent logs" 120
 $settings = Button "Settings" 100
 $dryRun = Button "Safe dry run" 130
 $test = Button "Test scheduler" 132
-$footer = Label "Close this window whenever you like. Auto backups continue through Windows Task Scheduler." 591 28 9 $false
+$footer = Label "Close this window whenever you like. Auto backups continue through Windows Task Scheduler." 689 28 9 $false
 $footer.Anchor="Bottom,Left,Right"
+$cadenceLabel = Label "Selected repository backup schedule" 548 25 10 $true
+$cadenceLabel.Anchor = "Bottom,Left,Right"
+$cadence = New-Object System.Windows.Forms.ComboBox
+$cadence.Location = [System.Drawing.Point]::new(24,577)
+$cadence.Size = [System.Drawing.Size]::new(210,32)
+$cadence.Anchor = "Bottom,Left"
+$cadence.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+$cadence.Items.AddRange([object[]]@("Manual (off)","Hourly","Every 6 hours","Daily"))
+$form.Controls.Add($cadence)
+$saveCadence = New-Object System.Windows.Forms.Button
+$saveCadence.Text = "Save schedule"
+$saveCadence.Location = [System.Drawing.Point]::new(244,574)
+$saveCadence.Size = [System.Drawing.Size]::new(142,34)
+$saveCadence.Anchor = "Bottom,Left"
+$saveCadence.Enabled = $false
+$form.Controls.Add($saveCadence)
+$cadenceHint = Label "Select a repository, choose a schedule, then Save." 397 579 31 9 $false
+$cadenceHint.Anchor = "Bottom,Left,Right"
 function Stamp($value) {
     if (-not $value) { return "-" }
     try { return ([DateTimeOffset]::Parse([string]$value)).LocalDateTime.ToString("dd MMM HH:mm") }
@@ -126,6 +144,8 @@ function Task-Health($taskName) {
 }
 function Refresh-Status {
     $grid.Rows.Clear()
+    $cadence.SelectedIndex = -1
+    $saveCadence.Enabled = $false
     if (-not (Test-Path -LiteralPath $configFile -PathType Leaf)) {
         $headline.Text="Setup required"
         $summary.Text="No local configuration found. Run repo-backup onboard before using scheduled backups."
@@ -137,28 +157,28 @@ function Refresh-Status {
         $summary.Text=$_.Exception.Message
         return
     }
-    $enabled=0; $scheduled=0; $issues=0
+    $enabled=0; $scheduled=0; $issues=0; $pausedIssues=0
     foreach($p in @($cfg.projects)) {
         $isEnabled=($p.enabled -ne $false)
         $issue=Has-Issue $p
         if($isEnabled) { $enabled++ }
         if($isEnabled -and $p.autoSchedule -in @("hourly","6h","daily")) { $scheduled++ }
-        if($issue) { $issues++ }
+        if($issue) { if($isEnabled -and $p.autoSchedule -in @("hourly","6h","daily")) { $issues++ } else { $pausedIssues++ } }
         $name=if($p.alias) {[string]$p.alias} else {[string]$p.name}
         $frequency=switch([string]$p.autoSchedule) { "hourly" {"Hourly"} "6h" {"6 hours"} "daily" {"Daily"} default {"Manual"} }
-        $warning=if($issue) {[string]$p.lastAutoFailureStatus} else {"None recorded"}
+        $warning=if($issue -and $p.autoSchedule -eq "manual") {"Historical (paused)"} elseif($issue) {[string]$p.lastAutoFailureStatus} else {"None recorded"}
         $index=$grid.Rows.Add($name,$(if($isEnabled) {"Yes"} else {"No"}),$frequency,(Stamp $p.lastAutoRunAt),$(if($p.lastAutoStatus){[string]$p.lastAutoStatus}else{"-"}),$warning)
         $grid.Rows[$index].Tag=$p
-        if($issue) {$grid.Rows[$index].DefaultCellStyle.ForeColor=[System.Drawing.Color]::Firebrick}
+        if($issue -and $p.autoSchedule -ne "manual") {$grid.Rows[$index].DefaultCellStyle.ForeColor=[System.Drawing.Color]::Firebrick}
     }
     $taskName=if($cfg.defaults.schedulerTaskName) {[string]$cfg.defaults.schedulerTaskName} else {"MadLabz Repo Backup Auto"}
     $health=Task-Health $taskName
     $last=Last-Run
     $lastText=if($null -eq $last) {"No completed run recorded"} else {"$(Stamp $last.timestamp) - $($last.status)"}
-    $summary.Text="$enabled enabled | $scheduled scheduled | $issues unresolved issues"+[Environment]::NewLine+"Scheduler: $health | Latest run: $lastText"
+    $summary.Text="$enabled enabled | $scheduled scheduled | $issues active alerts | $pausedIssues past/paused alerts"+[Environment]::NewLine+"Scheduler: $health | Latest run: $lastText"
     if($issues -gt 0) { $headline.Text="$issues automatic backup issue(s) need attention"; $headline.ForeColor=[System.Drawing.Color]::Firebrick }
     elseif($scheduled -gt 0 -and $health -match "Not installed|Disabled") { $headline.Text="Scheduled backups require attention"; $headline.ForeColor=[System.Drawing.Color]::DarkGoldenrod }
-    else { $headline.Text="No unresolved automatic backup issues"; $headline.ForeColor=[System.Drawing.Color]::DarkCyan }
+    else { $headline.Text="No active scheduled backup alerts"; $headline.ForeColor=[System.Drawing.Color]::DarkCyan }
     $details.Text="Select a repository. These are saved results; use Health check for a fresh local Git inspection."
 }
 function Open-Command($commandLine) {
@@ -181,7 +201,67 @@ $test.Add_Click({
     $answer=[System.Windows.Forms.MessageBox]::Show($message,"Scheduler test","YesNo","Warning")
     if($answer -eq [System.Windows.Forms.DialogResult]::Yes) { Open-Command "schedule test" }
 })
+$saveCadence.Add_Click({
+    if($grid.SelectedRows.Count -ne 1 -or $cadence.SelectedIndex -lt 0) { return }
+    $p = $grid.SelectedRows[0].Tag
+    if($null -eq $p -or $p.enabled -eq $false) { return }
+    $newSchedule = @("manual","hourly","6h","daily")[$cadence.SelectedIndex]
+    $oldSchedule = if($p.autoSchedule) { [string]$p.autoSchedule } else { "manual" }
+    if($oldSchedule -eq $newSchedule) { return }
+    if($newSchedule -ne "manual" -and (Has-Issue $p)) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "This repository has an unresolved backup failure. Keep it Manual until you reconcile the Git branch and run a successful check.",
+            "Schedule blocked", "OK", "Warning"
+        ) | Out-Null
+        return
+    }
+    $projectName = if($p.alias) { [string]$p.alias } else { [string]$p.name }
+    $message = "Change $projectName from $oldSchedule to $newSchedule?"
+    if($newSchedule -ne "manual") {
+        $message += [Environment]::NewLine+[Environment]::NewLine+"Automatic backups may commit and push when due. The Windows scheduled task must also be installed."
+    }
+    $answer = [System.Windows.Forms.MessageBox]::Show($message,"Confirm backup schedule","YesNo","Question")
+    if($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    if(-not (Test-Path -LiteralPath $engine -PathType Leaf)) {
+        [System.Windows.Forms.MessageBox]::Show("Repo Backup is not installed.","Repo Backup") | Out-Null
+        return
+    }
+    # Only trusted fixed choices, and use the selected repo's explicit configured path.
+    $target = [string]$p.path
+    if(-not $target -or $target.Contains('"')) { return }
+    $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $engine + '" schedule "' + $target + '" ' + $newSchedule
+    $stdout = [System.IO.Path]::GetTempFileName()
+    $stderr = [System.IO.Path]::GetTempFileName()
+    try {
+        $saveCadence.Enabled = $false
+        $form.UseWaitCursor = $true
+        $process = Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $response = ((Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue) + [Environment]::NewLine + (Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)).Trim()
+        if($process.ExitCode -ne 0 -or $response -notmatch "\\[OK\\]") {
+            [System.Windows.Forms.MessageBox]::Show("Could not confirm schedule change." + [Environment]::NewLine + $response,"Repo Backup","OK","Error") | Out-Null
+        } else {
+            Refresh-Status
+            [System.Windows.Forms.MessageBox]::Show("Saved " + $newSchedule + " schedule for " + $projectName + "." + [Environment]::NewLine + $response,"Repo Backup") | Out-Null
+        }
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show($_.Exception.Message,"Repo Backup","OK","Error") | Out-Null
+    } finally {
+        $form.UseWaitCursor = $false
+        Remove-Item -LiteralPath $stdout,$stderr -Force -ErrorAction SilentlyContinue
+        $saveCadence.Enabled = ($grid.SelectedRows.Count -gt 0)
+    }
+})
 $grid.Add_SelectionChanged({
+    if($grid.SelectedRows.Count -eq 1 -and $grid.SelectedRows[0].Tag) {
+        $chosen = $grid.SelectedRows[0].Tag
+        $cadence.SelectedIndex = switch([string]$chosen.autoSchedule) { "hourly" {1} "6h" {2} "daily" {3} default {0} }
+        $saveCadence.Enabled = ($chosen.enabled -ne $false)
+        $cadence.Enabled = ($chosen.enabled -ne $false)
+    } else {
+        $cadence.SelectedIndex = -1
+        $saveCadence.Enabled = $false
+    }
+
     if($grid.SelectedRows.Count -lt 1) { return }
     $p=$grid.SelectedRows[0].Tag
     if($null -eq $p) { return }
