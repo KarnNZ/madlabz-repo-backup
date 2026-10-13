@@ -105,7 +105,9 @@ $saveCadence.Size = [System.Drawing.Size]::new(142,34)
 $saveCadence.Anchor = "Bottom,Left"
 $saveCadence.Enabled = $false
 $form.Controls.Add($saveCadence)
-$cadenceHint = Label "Select a repository, choose a schedule, then Save." 397 579 31 9 $false
+$cadenceHint = Label "Choose a frequency, then click Save schedule." 397 579 30 9 $false
+$cadenceHint.Location = [System.Drawing.Point]::new(408,580)
+$cadenceHint.Size = [System.Drawing.Size]::new(490,25)
 $cadenceHint.Anchor = "Bottom,Left,Right"
 function Stamp($value) {
     if (-not $value) { return "-" }
@@ -216,7 +218,7 @@ $saveCadence.Add_Click({
         return
     }
     $projectName = if($p.alias) { [string]$p.alias } else { [string]$p.name }
-    $message = "Change $projectName from $oldSchedule to $newSchedule?"
+    $message = "Change {0} from {1} to {2}?" -f $projectName, $oldSchedule, $newSchedule
     if($newSchedule -ne "manual") {
         $message += [Environment]::NewLine+[Environment]::NewLine+"Automatic backups may commit and push when due. The Windows scheduled task must also be installed."
     }
@@ -241,7 +243,19 @@ $saveCadence.Add_Click({
             [System.Windows.Forms.MessageBox]::Show("Could not confirm schedule change." + [Environment]::NewLine + $response,"Repo Backup","OK","Error") | Out-Null
         } else {
             Refresh-Status
-            [System.Windows.Forms.MessageBox]::Show("Saved " + $newSchedule + " schedule for " + $projectName + "." + [Environment]::NewLine + $response,"Repo Backup") | Out-Null
+            # Preserve the edited repository selection after reloading settings.
+            $grid.ClearSelection()
+            foreach($row in $grid.Rows) {
+                if($row.Tag -and ([string]$row.Tag.path -eq $target)) {
+                    $row.Selected = $true
+                    $grid.CurrentCell = $row.Cells[0]
+                    break
+                }
+            }
+            [System.Windows.Forms.MessageBox]::Show(
+                ("Saved: {0} is now {1}." -f $projectName, $newSchedule),
+                "Schedule saved", "OK", "Information"
+            ) | Out-Null
         }
     } catch {
         [System.Windows.Forms.MessageBox]::Show($_.Exception.Message,"Repo Backup","OK","Error") | Out-Null
