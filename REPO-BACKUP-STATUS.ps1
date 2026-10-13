@@ -8,6 +8,10 @@ $dataDir = Join-Path $env:LOCALAPPDATA "MadLabz\RepoBackup"
 $configFile = Join-Path $dataDir "repos.json"
 $logFile = Join-Path $dataDir "auto-runs.jsonl"
 $engine = Join-Path $PSScriptRoot "repo-backup.ps1"
+if (-not (Test-Path -LiteralPath $engine -PathType Leaf)) {
+    # Standalone preview: use the currently installed v0.6.2 engine.
+    $engine = Join-Path $dataDir "App\repo-backup.ps1"
+}
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MadLabz Repo Backup - Status"
 $form.ClientSize = New-Object System.Drawing.Size(930,630)
