@@ -235,9 +235,9 @@ $saveCadence.Add_Click({
     try {
         $saveCadence.Enabled = $false
         $form.UseWaitCursor = $true
-        $process = Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $process = Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         $response = ((Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue) + [Environment]::NewLine + (Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)).Trim()
-        if($process.ExitCode -ne 0 -or $response -notmatch "\\[OK\\]") {
+        if($process.ExitCode -ne 0 -or $response -notmatch "\[OK\]") {
             [System.Windows.Forms.MessageBox]::Show("Could not confirm schedule change." + [Environment]::NewLine + $response,"Repo Backup","OK","Error") | Out-Null
         } else {
             Refresh-Status
