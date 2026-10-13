@@ -14,20 +14,20 @@ if (-not (Test-Path -LiteralPath $engine -PathType Leaf)) {
 }
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MadLabz Repo Backup - Status"
-$form.ClientSize = New-Object System.Drawing.Size(930,630)
-$form.MinimumSize = New-Object System.Drawing.Size(760,550)
+$form.ClientSize = [System.Drawing.Size]::new(930,630)
+$form.MinimumSize = [System.Drawing.Size]::new(760,550)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(247,249,249)
-$form.Font = New-Object System.Drawing.Font("Segoe UI",10)
+$form.Font = [System.Drawing.Font]::new("Segoe UI", [single]10, [System.Drawing.FontStyle]::Regular)
 $form.AutoScaleMode = "Dpi"
 function Label($text,$y,$height,$size,$strong) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $text
-    $label.Location = New-Object System.Drawing.Point(24,$y)
-    $label.Size = New-Object System.Drawing.Size(870,$height)
+    $label.Location = [System.Drawing.Point]::new(24,[int]$y)
+    $label.Size = [System.Drawing.Size]::new(870,[int]$height)
     $label.Anchor = "Top,Left,Right"
-    $weight = if ($strong) { "Bold" } else { "Regular" }
-    $label.Font = New-Object System.Drawing.Font("Segoe UI",$size,$weight)
+    $weight = if ($strong) { [System.Drawing.FontStyle]::Bold } else { [System.Drawing.FontStyle]::Regular }
+    $label.Font = [System.Drawing.Font]::new("Segoe UI", [single]$size, $weight)
     $label.ForeColor = [System.Drawing.Color]::FromArgb(25,39,42)
     $form.Controls.Add($label)
     return $label
@@ -37,8 +37,8 @@ $subtitle = Label "Local backup status and diagnostics" 60 26 10 $false
 $headline = Label "Checking local settings..." 97 33 14 $true
 $summary = Label "" 137 53 10 $false
 $grid = New-Object System.Windows.Forms.DataGridView
-$grid.Location = New-Object System.Drawing.Point(24,202)
-$grid.Size = New-Object System.Drawing.Size(882,250)
+$grid.Location = [System.Drawing.Point]::new(24,202)
+$grid.Size = [System.Drawing.Size]::new(882,250)
 $grid.Anchor = "Top,Bottom,Left,Right"
 $grid.BackgroundColor = [System.Drawing.Color]::White
 $grid.ReadOnly = $true
@@ -65,8 +65,8 @@ $details = Label "Select a repository to see its last recorded issue." 462 56 10
 $details.Anchor = "Bottom,Left,Right"
 $details.Top = 468
 $buttons = New-Object System.Windows.Forms.FlowLayoutPanel
-$buttons.Location = New-Object System.Drawing.Point(24,537)
-$buttons.Size = New-Object System.Drawing.Size(882,42)
+$buttons.Location = [System.Drawing.Point]::new(24,537)
+$buttons.Size = [System.Drawing.Size]::new(882,42)
 $buttons.Anchor = "Bottom,Left,Right"
 $buttons.AutoScroll = $true
 $buttons.WrapContents = $false
@@ -74,8 +74,8 @@ $form.Controls.Add($buttons)
 function Button($title,$width) {
     $b = New-Object System.Windows.Forms.Button
     $b.Text=$title
-    $b.Size=New-Object System.Drawing.Size($width,34)
-    $b.Margin=New-Object System.Windows.Forms.Padding(0,0,7,0)
+    $b.Size=[System.Drawing.Size]::new([int]$width,34)
+    $b.Margin=[System.Windows.Forms.Padding]::new(0,0,7,0)
     $b.FlatStyle="Flat"
     $b.BackColor=[System.Drawing.Color]::White
     $buttons.Controls.Add($b)
