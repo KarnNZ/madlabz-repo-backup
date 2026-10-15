@@ -57,19 +57,7 @@ $title.ForeColor = [System.Drawing.Color]::White
 $subtitle = Label "Local backup status and diagnostics" 58 23 10 $false
 $subtitle.Parent = $header
 $subtitle.ForeColor = [System.Drawing.Color]::FromArgb(172,193,199)
-# Brand is created directly inside the header. Reparenting a right-anchored
-# label after creation can collapse its width on Windows (leaving only "P").
-$brand = New-Object System.Windows.Forms.Label
-$brand.AutoSize = $false
-$brand.Text = "MADLABZ  /  DESKTOP"
-$brand.Location = [System.Drawing.Point]::new(702,32)
-$brand.Size = [System.Drawing.Size]::new(198,25)
-$brand.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Bold)
-$brand.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
-$brand.ForeColor = [System.Drawing.Color]::FromArgb(105,219,205)
-$header.Controls.Add($brand)
-$brand.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
-
+# Keep the top-right header empty; previously a clipped brand label left a stray character.
 $statusCard = New-Object System.Windows.Forms.Panel
 $statusCard.Location = [System.Drawing.Point]::new(24,108)
 $statusCard.Size = [System.Drawing.Size]::new(882,84)
@@ -113,26 +101,58 @@ $grid.DefaultCellStyle.SelectionForeColor = $colorInk
 $grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(248,251,251)
 $grid.RowTemplate.Height = 29
 $grid.AllowUserToResizeRows = $false
-$grid.ReadOnly = $true
+$grid.ReadOnly = $false
 $grid.AllowUserToAddRows = $false
 $grid.AllowUserToDeleteRows = $false
 $grid.RowHeadersVisible = $false
 $grid.MultiSelect = $false
 $grid.SelectionMode = "FullRowSelect"
 $grid.AutoSizeColumnsMode = "Fill"
+$checkColumn = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
+$checkColumn.Name = "bulk"
+$checkColumn.HeaderText = "Select"
+$checkColumn.Width = 62
+$checkColumn.AutoSizeMode = [System.Windows.Forms.DataGridViewAutoSizeColumnMode]::None
+$checkColumn.ReadOnly = $false
+$checkColumn.ThreeState = $false
+$grid.Columns.Add($checkColumn) | Out-Null
 $grid.Columns.Add("name","Repository") | Out-Null
 $grid.Columns.Add("enabled","Enabled") | Out-Null
 $grid.Columns.Add("schedule","Schedule") | Out-Null
 $grid.Columns.Add("run","Last auto run") | Out-Null
 $grid.Columns.Add("result","Last result") | Out-Null
 $grid.Columns.Add("attention","Attention") | Out-Null
-$grid.Columns[0].FillWeight=170
-$grid.Columns[1].FillWeight=65
-$grid.Columns[2].FillWeight=85
-$grid.Columns[3].FillWeight=125
-$grid.Columns[4].FillWeight=120
-$grid.Columns[5].FillWeight=125
+$grid.Columns[1].FillWeight=170
+$grid.Columns[2].FillWeight=65
+$grid.Columns[3].FillWeight=85
+$grid.Columns[4].FillWeight=125
+$grid.Columns[5].FillWeight=120
+$grid.Columns[6].FillWeight=125
+for($index=1;$index -le 6;$index++) { $grid.Columns[$index].ReadOnly = $true }
 $form.Controls.Add($grid)
+# Checkboxes mark bulk actions; ordinary row selection still opens details.
+$selectAll = New-Object System.Windows.Forms.Button
+$selectAll.Text = "Check enabled"
+$selectAll.Location = [System.Drawing.Point]::new(666,197)
+$selectAll.Size = [System.Drawing.Size]::new(140,28)
+$selectAll.Anchor = "Top,Right"
+$selectAll.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$selectAll.FlatAppearance.BorderColor = $colorLine
+$selectAll.BackColor = [System.Drawing.Color]::White
+$selectAll.ForeColor = $colorInk
+$selectAll.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Regular)
+$form.Controls.Add($selectAll)
+$clearChecks = New-Object System.Windows.Forms.Button
+$clearChecks.Text = "Clear checks"
+$clearChecks.Location = [System.Drawing.Point]::new(816,197)
+$clearChecks.Size = [System.Drawing.Size]::new(90,28)
+$clearChecks.Anchor = "Top,Right"
+$clearChecks.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$clearChecks.FlatAppearance.BorderColor = $colorLine
+$clearChecks.BackColor = [System.Drawing.Color]::White
+$clearChecks.ForeColor = $colorInk
+$clearChecks.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Regular)
+$form.Controls.Add($clearChecks)
 $grid.BringToFront()
 $detailsPanel = New-Object System.Windows.Forms.Panel
 $detailsPanel.Location = [System.Drawing.Point]::new(24,492)
@@ -295,8 +315,9 @@ function Refresh-Status {
         $name=if($p.alias) {[string]$p.alias} else {[string]$p.name}
         $frequency=switch([string]$p.autoSchedule) { "hourly" {"Hourly"} "6h" {"6 hours"} "daily" {"Daily"} default {"Manual"} }
         $warning=if($issue -and $p.autoSchedule -eq "manual") {"Historical (paused)"} elseif($issue) {[string]$p.lastAutoFailureStatus} else {"None recorded"}
-        $index=$grid.Rows.Add($name,$(if($isEnabled) {"Yes"} else {"No"}),$frequency,(Stamp $p.lastAutoRunAt),$(if($p.lastAutoStatus){[string]$p.lastAutoStatus}else{"-"}),$warning)
+        $index=$grid.Rows.Add($false,$name,$(if($isEnabled) {"Yes"} else {"No"}),$frequency,(Stamp $p.lastAutoRunAt),$(if($p.lastAutoStatus){[string]$p.lastAutoStatus}else{"-"}),$warning)
         $grid.Rows[$index].Tag=$p
+        if(-not $isEnabled) { $grid.Rows[$index].Cells[0].ReadOnly=$true }
         if($issue -and $p.autoSchedule -ne "manual") {$grid.Rows[$index].DefaultCellStyle.ForeColor=[System.Drawing.Color]::Firebrick}
     }
     $taskName=if($cfg.defaults.schedulerTaskName) {[string]$cfg.defaults.schedulerTaskName} else {"MadLabz Repo Backup Auto"}
