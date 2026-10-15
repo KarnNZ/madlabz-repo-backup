@@ -298,7 +298,14 @@ function Task-Health($taskName) {
         if ($null -eq $task) { return "Not installed" }
         if ($task.State -eq 1) { return "Disabled" }
         if ($task.State -eq 4) { return "Running" }
-        return "Installed (last exit: $($task.LastTaskResult))"
+        $exit = [int]$task.LastTaskResult
+        if ($exit -eq -2147020576) {
+            # 0x800710E0: Windows refused a launch request, often due to
+            # overlapping instances or conditions. This is not an app success.
+            return "Launch refused (0x800710E0)"
+        }
+        if ($exit -ne 0) { return ("Task error 0x{0:X8}" -f $exit) }
+        return "Installed (last result: 0)"
     }
     catch { return "Not installed or inaccessible" }
 }
@@ -352,7 +359,10 @@ function Refresh-Status {
     $lastText=if($null -eq $last) {"No completed run recorded"} else {"$(Stamp $last.timestamp) - $($last.status)"}
     $summary.Text="$enabled enabled | $scheduled scheduled | $issues active alerts | $pausedIssues past/paused alerts"+[Environment]::NewLine+"Scheduler: $health | Latest run: $lastText"
     if($issues -gt 0) { $headline.Text="$issues automatic backup issue(s) need attention"; $headline.ForeColor=[System.Drawing.Color]::Firebrick }
-    elseif($scheduled -gt 0 -and $health -match "Not installed|Disabled") { $headline.Text="Scheduled backups require attention"; $headline.ForeColor=[System.Drawing.Color]::DarkGoldenrod }
+    elseif($scheduled -gt 0 -and $health -match "Not installed|Disabled|Launch refused|Task error") {
+        $headline.Text="Windows scheduler needs checking"
+        $headline.ForeColor=[System.Drawing.Color]::DarkGoldenrod
+    }
     else { $headline.Text="No active scheduled backup alerts"; $headline.ForeColor=[System.Drawing.Color]::DarkCyan }
     $details.Text="Select a repository. These are saved results; use Health check for a fresh local Git inspection."
 }
