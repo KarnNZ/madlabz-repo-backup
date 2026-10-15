@@ -293,6 +293,8 @@ function Get-InstallableAppFiles {
         "TEST-AUTO-BACKUP.cmd",
         "ONBOARD.cmd",
         "DASHBOARD.cmd",
+        "OPEN-STATUS-DASHBOARD.cmd",
+        "REPO-BACKUP-STATUS.ps1",
         "DEMO.cmd",
         "README.md",
         "CHANGELOG.md",
