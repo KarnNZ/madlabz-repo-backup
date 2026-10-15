@@ -251,10 +251,22 @@ $form.Controls.Add($saveCadence)
 # Label helper takes five arguments. A sixth argument previously made this
 # text 30pt and 579px tall, overlapping the save controls.
 $cadenceHint = Label "Choose a frequency, then click Save schedule." 579 25 9 $false
-$cadenceHint.Location = [System.Drawing.Point]::new(408,580)
-$cadenceHint.Size = [System.Drawing.Size]::new(490,25)
+$cadenceHint.Location = [System.Drawing.Point]::new(574,580)
+$cadenceHint.Size = [System.Drawing.Size]::new(320,25)
 $cadenceHint.ForeColor = $colorMuted
 $cadenceHint.Anchor = "Bottom,Left,Right"
+$bulkSave = New-Object System.Windows.Forms.Button
+$bulkSave.Text = "Apply to checked (0)"
+$bulkSave.Location = [System.Drawing.Point]::new(400,574)
+$bulkSave.Size = [System.Drawing.Size]::new(166,34)
+$bulkSave.Anchor = "Bottom,Left"
+$bulkSave.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$bulkSave.FlatAppearance.BorderColor = $colorTeal
+$bulkSave.BackColor = [System.Drawing.Color]::White
+$bulkSave.ForeColor = $colorInk
+$bulkSave.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Bold)
+$bulkSave.Enabled = $false
+$form.Controls.Add($bulkSave)
 function Stamp($value) {
     if (-not $value) { return "-" }
     try { return ([DateTimeOffset]::Parse([string]$value)).LocalDateTime.ToString("dd MMM HH:mm") }
@@ -290,8 +302,19 @@ function Task-Health($taskName) {
     }
     catch { return "Not installed or inaccessible" }
 }
+function Get-CheckedRows {
+    return @($grid.Rows | Where-Object {
+        $_.Tag -and $_.Tag.enabled -ne $false -and $_.Cells[0].Value -eq $true
+    })
+}
+function Update-BulkControls {
+    $count = @(Get-CheckedRows).Count
+    $bulkSave.Text = "Apply to checked ($count)"
+    $bulkSave.Enabled = ($count -gt 0 -and $cadence.SelectedIndex -ge 0)
+}
 function Refresh-Status {
     $grid.Rows.Clear()
+    Update-BulkControls
     $cadence.SelectedIndex = -1
     $saveCadence.Enabled = $false
     if (-not (Test-Path -LiteralPath $configFile -PathType Leaf)) {
@@ -317,7 +340,10 @@ function Refresh-Status {
         $warning=if($issue -and $p.autoSchedule -eq "manual") {"Historical (paused)"} elseif($issue) {[string]$p.lastAutoFailureStatus} else {"None recorded"}
         $index=$grid.Rows.Add($false,$name,$(if($isEnabled) {"Yes"} else {"No"}),$frequency,(Stamp $p.lastAutoRunAt),$(if($p.lastAutoStatus){[string]$p.lastAutoStatus}else{"-"}),$warning)
         $grid.Rows[$index].Tag=$p
-        if(-not $isEnabled) { $grid.Rows[$index].Cells[0].ReadOnly=$true }
+        if(-not $isEnabled) {
+            $grid.Rows[$index].Cells[0].ReadOnly=$true
+            $grid.Rows[$index].Cells[0].Style.ForeColor=$colorMuted
+        }
         if($issue -and $p.autoSchedule -ne "manual") {$grid.Rows[$index].DefaultCellStyle.ForeColor=[System.Drawing.Color]::Firebrick}
     }
     $taskName=if($cfg.defaults.schedulerTaskName) {[string]$cfg.defaults.schedulerTaskName} else {"MadLabz Repo Backup Auto"}
@@ -340,6 +366,29 @@ function Open-Command($commandLine) {
     $full="powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath $commandLine"
     Start-Process -FilePath "cmd.exe" -ArgumentList @("/k",$full) | Out-Null
 }
+$grid.Add_CurrentCellDirtyStateChanged({
+    if($grid.IsCurrentCellDirty -and $grid.CurrentCell.ColumnIndex -eq 0) {
+        [void]$grid.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit)
+    }
+})
+$grid.Add_CellValueChanged({
+    if($_.ColumnIndex -eq 0) { Update-BulkControls }
+})
+$grid.Add_CellBeginEdit({
+    if($_.ColumnIndex -ne 0 -or $grid.Rows[$_.RowIndex].Tag.enabled -eq $false) {
+        $_.Cancel = $true
+    }
+})
+$selectAll.Add_Click({
+    foreach($row in $grid.Rows) {
+        if($row.Tag -and $row.Tag.enabled -ne $false) { $row.Cells[0].Value = $true }
+    }
+    Update-BulkControls
+})
+$clearChecks.Add_Click({
+    foreach($row in $grid.Rows) { $row.Cells[0].Value = $false }
+    Update-BulkControls
+})
 $refresh.Add_Click({ Refresh-Status })
 $doctor.Add_Click({ Open-Command "doctor" })
 $logs.Add_Click({ Open-Command "auto log 40" })
@@ -412,6 +461,98 @@ $saveCadence.Add_Click({
         $saveCadence.Enabled = ($grid.SelectedRows.Count -gt 0)
     }
 })
+$bulkSave.Add_Click({
+    if($cadence.SelectedIndex -lt 0) {
+        [System.Windows.Forms.MessageBox]::Show("Select a backup frequency before applying.","Bulk schedule") | Out-Null
+        return
+    }
+    $chosenRows = @(Get-CheckedRows)
+    if($chosenRows.Count -eq 0) { return }
+    $frequency = @("manual","hourly","6h","daily")[$cadence.SelectedIndex]
+    $toChange = @($chosenRows | Where-Object {
+        $current = if($_.Tag.autoSchedule) { [string]$_.Tag.autoSchedule } else { "manual" }
+        $current -ne $frequency
+    })
+    if($toChange.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("All checked repositories already use this frequency.","Bulk schedule") | Out-Null
+        return
+    }
+    # Never reactivate an unresolved backup failure as part of a bulk operation.
+    if($frequency -ne "manual") {
+        $blocked = @($toChange | Where-Object { Has-Issue $_.Tag })
+        if($blocked.Count -gt 0) {
+            $blockedNames = @($blocked | ForEach-Object {
+                if($_.Tag.alias) { [string]$_.Tag.alias } else { [string]$_.Tag.name }
+            }) -join ", "
+            [System.Windows.Forms.MessageBox]::Show(
+                "Cannot enable automatic backups while these repositories have unresolved past failures: " + $blockedNames +
+                [Environment]::NewLine + [Environment]::NewLine +
+                "Uncheck these repositories and try again. No schedules were changed.",
+                "Bulk schedule blocked", "OK", "Warning"
+            ) | Out-Null
+            return
+        }
+    }
+    $names = @($toChange | ForEach-Object {
+        if($_.Tag.alias) { [string]$_.Tag.alias } else { [string]$_.Tag.name }
+    })
+    $preview = "Set " + $toChange.Count + " repositories to " + $frequency + "?" +
+        [Environment]::NewLine + [Environment]::NewLine + ($names -join [Environment]::NewLine)
+    if($frequency -ne "manual") {
+        $preview += [Environment]::NewLine + [Environment]::NewLine +
+            "Automatic backups may create and push Git commits when due. The Windows scheduler must be installed."
+    }
+    $answer = [System.Windows.Forms.MessageBox]::Show(
+        $preview, "Confirm bulk schedule change", "YesNo", "Warning"
+    )
+    if($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    if(-not (Test-Path -LiteralPath $engine -PathType Leaf)) {
+        [System.Windows.Forms.MessageBox]::Show("Installed Repo Backup engine could not be found.","Bulk schedule") | Out-Null
+        return
+    }
+    $out = [System.IO.Path]::GetTempFileName()
+    $err = [System.IO.Path]::GetTempFileName()
+    $success = New-Object System.Collections.Generic.List[string]
+    $failed = New-Object System.Collections.Generic.List[string]
+    try {
+        $form.UseWaitCursor = $true
+        $bulkSave.Enabled = $false
+        foreach($row in $toChange) {
+            $project = $row.Tag
+            $name = if($project.alias) { [string]$project.alias } else { [string]$project.name }
+            $repoPath = [string]$project.path
+            if(-not $repoPath -or $repoPath.Contains('"')) {
+                $failed.Add($name + ": invalid path")
+                continue
+            }
+            Clear-Content -LiteralPath $out -ErrorAction SilentlyContinue
+            Clear-Content -LiteralPath $err -ErrorAction SilentlyContinue
+            $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $engine + '" schedule "' + $repoPath + '" ' + $frequency
+            try {
+                $proc = Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+                $text = [string](Get-Content -LiteralPath $out -Raw -ErrorAction SilentlyContinue)
+                if($proc.ExitCode -eq 0 -and $text.Contains("[OK]")) {
+                    $success.Add($name)
+                } else {
+                    $failed.Add($name + ": " + ([string](Get-Content -LiteralPath $err -Raw -ErrorAction SilentlyContinue)).Trim())
+                }
+            } catch {
+                $failed.Add($name + ": " + $_.Exception.Message)
+            }
+        }
+    } finally {
+        $form.UseWaitCursor = $false
+        Remove-Item -LiteralPath $out,$err -Force -ErrorAction SilentlyContinue
+        Refresh-Status
+    }
+    $result = "$($success.Count) schedule(s) updated to $frequency."
+    if($failed.Count -gt 0) {
+        $result += [Environment]::NewLine + "$($failed.Count) failed:" +
+            [Environment]::NewLine + ($failed -join [Environment]::NewLine)
+    }
+    [System.Windows.Forms.MessageBox]::Show($result,"Bulk schedule results","OK",
+        $(if($failed.Count -gt 0) {"Warning"} else {"Information"})) | Out-Null
+})
 $grid.Add_SelectionChanged({
     if($grid.SelectedRows.Count -eq 1 -and $grid.SelectedRows[0].Tag) {
         $chosen = $grid.SelectedRows[0].Tag
@@ -422,6 +563,7 @@ $grid.Add_SelectionChanged({
         $cadence.SelectedIndex = -1
         $saveCadence.Enabled = $false
     }
+    Update-BulkControls
 
     if($grid.SelectedRows.Count -lt 1) { return }
     $p=$grid.SelectedRows[0].Tag
