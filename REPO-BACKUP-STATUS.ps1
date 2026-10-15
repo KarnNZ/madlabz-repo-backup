@@ -57,13 +57,18 @@ $title.ForeColor = [System.Drawing.Color]::White
 $subtitle = Label "Local backup status and diagnostics" 58 23 10 $false
 $subtitle.Parent = $header
 $subtitle.ForeColor = [System.Drawing.Color]::FromArgb(172,193,199)
-$brand = Label "MADLABZ  /  DESKTOP" 36 24 9 $true
-$brand.Parent = $header
-$brand.Location = [System.Drawing.Point]::new(707,33)
-$brand.Size = [System.Drawing.Size]::new(195,24)
-$brand.TextAlign = "MiddleRight"
-$brand.Anchor = "Top,Right"
+# Brand is created directly inside the header. Reparenting a right-anchored
+# label after creation can collapse its width on Windows (leaving only "P").
+$brand = New-Object System.Windows.Forms.Label
+$brand.AutoSize = $false
+$brand.Text = "MADLABZ  /  DESKTOP"
+$brand.Location = [System.Drawing.Point]::new(702,32)
+$brand.Size = [System.Drawing.Size]::new(198,25)
+$brand.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Bold)
+$brand.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 $brand.ForeColor = [System.Drawing.Color]::FromArgb(105,219,205)
+$header.Controls.Add($brand)
+$brand.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 
 $statusCard = New-Object System.Windows.Forms.Panel
 $statusCard.Location = [System.Drawing.Point]::new(24,108)
@@ -179,7 +184,7 @@ $dryRunInfoText = "Checks enabled repositories and previews what a backup would 
     "It checks Git status, fetches the latest remote state, and runs safety checks." + [Environment]::NewLine +
     "It does NOT stage files, create commits, or push changes." + [Environment]::NewLine +
     "It may update remote-tracking references and append a local dry-run history record." + [Environment]::NewLine +
-    "It does not create a backup. MadLabz Website stays on Manual."
+    "It does not create a backup or change any repository's automatic schedule."
 $toolTips = New-Object System.Windows.Forms.ToolTip
 $toolTips.AutoPopDelay = 20000
 $toolTips.InitialDelay = 250
@@ -223,10 +228,12 @@ $saveCadence.BackColor = $colorTeal
 $saveCadence.ForeColor = [System.Drawing.Color]::FromArgb(8,34,32)
 $saveCadence.Font = [System.Drawing.Font]::new("Segoe UI", [single]9, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($saveCadence)
-$cadenceHint = Label "Choose a frequency, then Save schedule." 397 579 30 9 $false
-$cadenceHint.ForeColor = $colorMuted
+# Label helper takes five arguments. A sixth argument previously made this
+# text 30pt and 579px tall, overlapping the save controls.
+$cadenceHint = Label "Choose a frequency, then click Save schedule." 579 25 9 $false
 $cadenceHint.Location = [System.Drawing.Point]::new(408,580)
 $cadenceHint.Size = [System.Drawing.Size]::new(490,25)
+$cadenceHint.ForeColor = $colorMuted
 $cadenceHint.Anchor = "Bottom,Left,Right"
 function Stamp($value) {
     if (-not $value) { return "-" }
