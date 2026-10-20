@@ -109,8 +109,19 @@ jobs:
           # A release branch can publish its matching version without making
           # users create a Git tag locally. GitHub creates the tag at this
           # fully validated commit. Manual tag pushes remain supported too.
-          $existing = gh release view $tag --json tagName --jq .tagName 2>$null
-          if ($LASTEXITCODE -eq 0 -and $existing -eq $tag) {
+          # Windows PowerShell 5.1 turns native stderr into an error record
+          # under Actions ErrorActionPreference=Stop, even with 2>$null.
+          # "release not found" is expected for a first-time version.
+          $savedPreference = $ErrorActionPreference
+          try {
+            $ErrorActionPreference = "SilentlyContinue"
+            $existing = gh release view $tag --json tagName --jq .tagName 2>$null
+            $existingExitCode = $LASTEXITCODE
+          }
+          finally {
+            $ErrorActionPreference = $savedPreference
+          }
+          if ($existingExitCode -eq 0 -and $existing -eq $tag) {
             Write-Host "Release already exists; uploading validated assets."
             gh release upload $tag $assets --clobber
             if ($LASTEXITCODE -ne 0) { throw "Release asset upload failed." }
