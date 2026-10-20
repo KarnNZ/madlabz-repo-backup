@@ -17,7 +17,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$ScriptVersion = "0.6.2"
+$ScriptVersion = "0.7.0"
 $DefaultReleaseApiUrl = "https://api.github.com/repos/KarnNZ/madlabz-repo-backup/releases/latest"
 
 function Write-Info($Message) { Write-Host "[INFO]  $Message" -ForegroundColor Cyan }
@@ -361,7 +361,7 @@ function Invoke-InstallPackage($Settings, [bool]$AsUpdate) {
     Show-Header $title
 
     if ($env:OS -ne "Windows_NT") {
-        throw "V0.6.2 installer currently supports Windows only."
+        throw "Repo Backup installer currently supports Windows only."
     }
 
     $sourceDirectory = Normalize-Path $PSScriptRoot
@@ -405,7 +405,9 @@ function Invoke-InstallPackage($Settings, [bool]$AsUpdate) {
             $stagedLauncher = Join-Path $stageDirectory "repo-backup.cmd"
 
             if (-not (Test-Path -LiteralPath $stagedScript -PathType Leaf) -or
-                -not (Test-Path -LiteralPath $stagedLauncher -PathType Leaf)) {
+                -not (Test-Path -LiteralPath $stagedLauncher -PathType Leaf) -or
+                -not (Test-Path -LiteralPath (Join-Path $stageDirectory "REPO-BACKUP-STATUS.ps1") -PathType Leaf) -or
+                -not (Test-Path -LiteralPath (Join-Path $stageDirectory "OPEN-STATUS-DASHBOARD.cmd") -PathType Leaf)) {
                 throw "Staged application is incomplete. Existing installation was not changed."
             }
 
