@@ -52,10 +52,44 @@ if ($errors -and $errors.Count -gt 0) {
     exit 1
 }
 
+# The graphical dashboard is a required part of the v0.7.0 Windows package.
+# Validate it without launching any GUI or touching user configuration.
+$packageDirectory = Split-Path -Parent $ScriptPath
+$dashboardSource = Join-Path $packageDirectory "REPO-BACKUP-STATUS.ps1"
+$dashboardLauncher = Join-Path $packageDirectory "OPEN-STATUS-DASHBOARD.cmd"
+if (-not (Test-Path -LiteralPath $dashboardSource -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $dashboardLauncher -PathType Leaf)) {
+    Write-Host "[FAIL] The GUI dashboard script or launcher is missing from the package." -ForegroundColor Red
+    exit 1
+}
+
+$dashboardBytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $dashboardSource))
+if (@($dashboardBytes | Where-Object { $_ -gt 127 }).Count -gt 0) {
+    Write-Host "[FAIL] Desktop dashboard source contains non-ASCII bytes." -ForegroundColor Red
+    exit 1
+}
+
+$dashboardTokens = $null
+$dashboardErrors = $null
+[void][System.Management.Automation.Language.Parser]::ParseFile(
+    (Resolve-Path -LiteralPath $dashboardSource),
+    [ref]$dashboardTokens,
+    [ref]$dashboardErrors
+)
+if ($dashboardErrors -and $dashboardErrors.Count -gt 0) {
+    foreach ($dashboardError in $dashboardErrors) {
+        Write-Host $dashboardError.ToString() -ForegroundColor Red
+    }
+    Write-Host "[FAIL] Desktop dashboard PowerShell parse failed." -ForegroundColor Red
+    exit 1
+}
+
 Write-Host ""
 Write-Host "MADLABZ REPO BACKUP - PACKAGE VALIDATION" -ForegroundColor White
 Write-Host "ASCII source compatibility: PASS" -ForegroundColor Green
 Write-Host "PowerShell parse: PASS" -ForegroundColor Green
+Write-Host "Dashboard ASCII compatibility: PASS" -ForegroundColor Green
+Write-Host "Dashboard PowerShell parse: PASS" -ForegroundColor Green
 Write-Host "Version marker: " -NoNewline -ForegroundColor DarkGray
 
 $source = Get-Content -LiteralPath $ScriptPath -Raw
