@@ -47,6 +47,8 @@ jobs:
             "BACKUP-NOW.cmd",
             "CHANGELOG.md",
             "DASHBOARD.cmd",
+            "OPEN-STATUS-DASHBOARD.cmd",
+            "REPO-BACKUP-STATUS.ps1",
             "DEMO.cmd",
             "INSTALL.cmd",
             "LICENSE",
