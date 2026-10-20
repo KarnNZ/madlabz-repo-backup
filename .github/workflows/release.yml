@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*.*.*"
+    branches:
+      - "release/v*.*.*"
 
 permissions:
   contents: write
@@ -27,9 +29,9 @@ jobs:
             throw "ScriptVersion not found."
           }
           $version = $Matches[1]
-          $tag = "${{ github.ref_name }}"
-          if ($tag -ne "v$version") {
-            throw "Tag $tag does not match ScriptVersion $version."
+          $refName = "${{ github.ref_name }}"
+          if ($refName -ne "v$version" -and $refName -ne "release/v$version") {
+            throw "Release ref $refName does not match ScriptVersion $version."
           }
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
@@ -98,9 +100,26 @@ jobs:
         shell: powershell
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          gh release create "v$version" `
-            "madlabz-repo-backup-v$version-windows.zip" `
-            "madlabz-repo-backup-v$version-windows.zip.sha256" `
-            "release-manifest.json" `
-            --title "MadLabz Repo Backup v$version" `
-            --notes-file RELEASE_NOTES.md
+          $tag = "v$version"
+          $assets = @(
+            "madlabz-repo-backup-v$version-windows.zip",
+            "madlabz-repo-backup-v$version-windows.zip.sha256",
+            "release-manifest.json"
+          )
+          # A release branch can publish its matching version without making
+          # users create a Git tag locally. GitHub creates the tag at this
+          # fully validated commit. Manual tag pushes remain supported too.
+          $existing = gh release view $tag --json tagName --jq .tagName 2>$null
+          if ($LASTEXITCODE -eq 0 -and $existing -eq $tag) {
+            Write-Host "Release already exists; uploading validated assets."
+            gh release upload $tag $assets --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Release asset upload failed." }
+            gh release edit $tag --title "MadLabz Repo Backup v$version" --notes-file RELEASE_NOTES.md
+          }
+          else {
+            gh release create $tag $assets `
+              --target "${{ github.sha }}" `
+              --title "MadLabz Repo Backup v$version" `
+              --notes-file RELEASE_NOTES.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Could not publish release $tag." }
