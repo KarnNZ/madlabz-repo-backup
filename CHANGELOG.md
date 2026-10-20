@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+- Added an optional local Windows Forms graphical status dashboard with repository and scheduler health, alerts, history and logs.
+- Added intuitive per-repository Manual / Hourly / Every 6 hours / Daily scheduling, including checkbox bulk changes, preview and confirmation.
+- Prevented dashboard reactivation of repositories with unresolved automatic-backup failures.
+- Added Safe dry-run help and separated historical paused warnings from active scheduled alerts.
+- Added an explicit warning for Windows Task Scheduler launch-refused code 0x800710E0.
+- Included the desktop GUI script and launcher in the permanent AppData installation and official Windows release ZIP.
+- Preserved existing backup engine and Git safety semantics, and user configuration/logs across upgrades.
+- Added Windows PowerShell 5.1 compatibility validation for the dashboard source.
+
 ## 0.6.2
 
 - Fixed the V0.6.1 RC Windows PowerShell 5.1 encoding/parser failure.
