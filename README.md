@@ -6,7 +6,7 @@ MadLabz Repo Backup is a free Windows developer utility for safely checkpointing
 
 It discovers repositories, lets you choose which ones to protect, runs Git and secret-safety checks, creates timestamped checkpoint commits when files changed, and pushes only when the remote state is safe.
 
-**Current release: v0.6.2**
+**Current release: v0.7.0**
 
 ## See it in 30 seconds
 
@@ -25,9 +25,9 @@ Automatic mode can be verified end-to-end from the CLI.
 1. Download the latest ZIP.
 2. Extract it.
 3. Run `VALIDATE-PACKAGE.cmd` and confirm both validation checks pass.
-4. Double-click `INSTALL.cmd`.
-5. Open a new Git Bash or PowerShell window.
-6. Run:
+4. Double-click `INSTALL.cmd` (or `UPDATE.cmd` when upgrading).
+5. Double-click `OPEN-STATUS-DASHBOARD.cmd` in `%LOCALAPPDATA%\\MadLabz\\RepoBackup\\App` for the graphical dashboard.
+6. Open a new Git Bash or PowerShell window and run:
 
 ```bash
 repo-backup onboard
@@ -60,7 +60,7 @@ It walks through download, validation, installation, onboarding, safety checks, 
 
 ## Optional desktop status window
 
-Repo Backup also includes a local Windows Forms status dashboard. After installing the new release, double-click `OPEN-STATUS-DASHBOARD.cmd` in the installed app folder:
+Repo Backup v0.7.0 includes a local Windows Forms status dashboard. After installation, double-click `OPEN-STATUS-DASHBOARD.cmd` in the installed app folder:
 
 `%LOCALAPPDATA%\MadLabz\RepoBackup\App`
 
@@ -71,7 +71,7 @@ The dashboard is local and can be closed without affecting scheduled backups. It
 ## What the dashboard tells you
 
 ```text
-MADLABZ REPO BACKUP  v0.6.2  |  DASHBOARD
+MADLABZ REPO BACKUP  v0.7.0  |  DASHBOARD
 
 Protected repos         : 12
 Local changes           : 2
@@ -243,7 +243,7 @@ repo-backup help
 
 ## Status
 
-v0.6.2 is the first public-beta release after the core was proven across a real 12-repository working setup, including unattended Windows scheduling, persistent logging, stable installation and guided onboarding.
+v0.7.0 adds the optional Windows graphical desktop dashboard to the existing tested backup, Git safety and scheduling engine. The earlier v0.6.2 release introduced the Windows PowerShell 5.1-compatible public beta.
 
 ## MadLabz
 
